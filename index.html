@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Cycle Bangla: Morning Paper</title>
+    <style>
+        :root {
+            --panel: rgba(12, 18, 28, 0.78);
+            --text: #f2f5f8;
+            --muted: #a9b6c4;
+            --accent: #4fd1a5;
+            --red: #ff5a5a;
+            --green: #1f6f3f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #0b1633;
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #game {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 14px;
+            padding: 10px 14px;
+            backdrop-filter: blur(4px);
+        }
+
+        #hud > * {
+            position: fixed;
+            z-index: 2;
+        }
+
+        .stats {
+            top: 12px;
+            left: 12px;
+            min-width: 190px;
+        }
+
+        #score {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .small {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 2px 0 6px;
+        }
+
+        #lives {
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        .shift {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffd24a;
+        }
+
+        #combo {
+            color: var(--muted);
+        }
+
+        #combo.hot {
+            color: #ff9f43;
+        }
+
+        .top-buttons button.off {
+            opacity: 0.4;
+        }
+
+        .subtitle {
+            margin: 2px 0 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffd24a;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        #touch .throws .touch-btn {
+            width: 84px;
+            font-size: 22px;
+            border-radius: 18px;
+        }
+
+        .bar {
+            margin-top: 6px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #stamina {
+            height: 100%;
+            width: 100%;
+            background: var(--accent);
+            transition: width 0.2s;
+        }
+
+        #stamina.low {
+            background: var(--red);
+        }
+
+        .bar-label {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        #minimap {
+            top: 12px;
+            right: 12px;
+            width: 180px;
+            height: 180px;
+        }
+
+        #speedo {
+            right: 16px;
+            bottom: 16px;
+            width: 170px;
+            height: 170px;
+        }
+
+        .top-buttons {
+            top: 200px;
+            right: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .top-buttons button, .touch-btn {
+            border: 0;
+            border-radius: 12px;
+            background: var(--panel);
+            color: var(--text);
+            font-size: 20px;
+            width: 46px;
+            height: 46px;
+            cursor: pointer;
+        }
+
+        #toast {
+            top: 18%;
+            left: 50%;
+            transform: translate(-50%, -10px);
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: var(--panel);
+            font-weight: 700;
+            font-size: 18px;
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        #banner {
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, 0) scale(0.9);
+            padding: 14px 28px;
+            border-radius: 14px;
+            background: rgba(31, 111, 63, 0.9);
+            font-size: 26px;
+            font-weight: 800;
+            opacity: 0;
+            transition: opacity 0.4s, transform 0.4s;
+            pointer-events: none;
+            text-align: center;
+            max-width: calc(100vw - 32px);
+        }
+
+        #toast.show, #banner.show {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        #fact {
+            left: 12px;
+            bottom: 16px;
+            max-width: 340px;
+            border-left: 4px solid #ffd24a;
+        }
+
+        #fact p {
+            margin: 4px 0 0;
+            font-size: 14px;
+            color: #dbe4ee;
+            line-height: 1.4;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: radial-gradient(ellipse at center, rgba(8, 14, 24, 0.35), rgba(8, 14, 24, 0.75));
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: 20px;
+            padding: 28px;
+            width: min(460px, 100%);
+            text-align: center;
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+
+        .card h1 {
+            margin: 0;
+            font-size: 40px;
+            letter-spacing: 1px;
+        }
+
+        .card h1 span {
+            color: var(--red);
+        }
+
+        .card h2 {
+            margin: 0 0 12px;
+        }
+
+        .tagline {
+            color: var(--muted);
+            margin: 6px 0 18px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 14px;
+            text-align: left;
+            font-size: 14px;
+            margin: 0 auto 18px;
+            width: fit-content;
+        }
+
+        kbd {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            padding: 2px 7px;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 14px 0 20px;
+        }
+
+        .stats-grid div {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .stats-grid strong {
+            display: block;
+            font-size: 22px;
+        }
+
+        .stats-grid span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .primary {
+            border: 0;
+            border-radius: 999px;
+            padding: 14px 34px;
+            font-size: 18px;
+            font-weight: 800;
+            background: var(--accent);
+            color: #0b1633;
+            cursor: pointer;
+        }
+
+        .primary:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .best {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        #touch {
+            position: fixed;
+            inset: auto 0 0 0;
+            z-index: 3;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 16px;
+            pointer-events: none;
+        }
+
+        #touch .group {
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        #touch .touch-btn {
+            width: 72px;
+            height: 72px;
+            font-size: 28px;
+            border-radius: 50%;
+        }
+
+        @media (pointer: coarse), (max-width: 720px) {
+            #speedo {
+                top: 12px;
+                right: auto;
+                bottom: auto;
+                left: 220px;
+                width: 110px;
+                height: 110px;
+            }
+
+            #minimap {
+                width: 130px;
+                height: 130px;
+            }
+
+            .top-buttons {
+                top: 150px;
+            }
+
+            #fact {
+                bottom: 110px;
+                max-width: calc(100vw - 24px);
+            }
+
+            .stats {
+                min-width: 150px;
+                padding: 8px 10px;
+            }
+
+            #score {
+                font-size: 22px;
+            }
+
+            #banner {
+                font-size: 20px;
+            }
+        }
+
+        .touch-only {
+            display: none;
+        }
+
+        @media (pointer: coarse) {
+            .keys-only {
+                display: none;
+            }
+
+            .touch-only {
+                display: block;
+            }
+        }
+
+        @media (max-height: 500px) {
+            .card {
+                padding: 16px 20px;
+            }
+
+            .card h1 {
+                font-size: 28px;
+            }
+
+            .tagline {
+                margin: 4px 0 10px;
+                font-size: 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                margin: 8px 0 12px;
+            }
+        }
+
+        @media (orientation: portrait) and (pointer: coarse), (max-width: 480px) {
+            #speedo {
+                top: 150px;
+                left: 12px;
+                right: auto;
+                width: 84px;
+                height: 84px;
+            }
+
+            #touch {
+                flex-wrap: wrap;
+                row-gap: 12px;
+            }
+
+            #touch .throws {
+                order: -1;
+                width: 100%;
+                justify-content: center;
+            }
+
+            #touch .touch-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            #touch .throws .touch-btn {
+                width: 96px;
+                height: 60px;
+            }
+
+            #fact {
+                bottom: 180px;
+            }
+        }
+
+        .rotate-tip {
+            display: none;
+            color: #ffd24a;
+        }
+
+        @media (orientation: portrait) and (pointer: coarse) {
+            .rotate-tip {
+                display: block;
+            }
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+    <div class="panel stats">
+        <div class="shift"><span id="clock">5:30 AM</span><span>📰 <strong id="delivered">0</strong> <span id="combo">×1</span></span></div>
+        <div id="score">0</div>
+        <div class="small"><span id="distance">0.00 km</span> · <span id="zone">Dhaka</span></div>
+        <div id="lives"></div>
+        <div class="bar"><div id="stamina"></div></div>
+        <div class="bar-label">Boost stamina</div>
+    </div>
+    <canvas id="minimap" width="360" height="360"></canvas>
+    <canvas id="speedo" width="340" height="340"></canvas>
+    <div class="top-buttons">
+        <button id="camBtn" title="Camera (C)">🎥</button>
+        <button id="musicBtn" title="Music (N)">🎵</button>
+        <button id="muteBtn" title="Mute (M)">🔊</button>
+        <button id="pauseBtn" title="Pause (P)">⏸</button>
+    </div>
+    <div id="toast"></div>
+    <div id="banner"></div>
+    <div id="fact" class="panel hidden"><strong id="factTitle"></strong><p id="factText"></p></div>
+</div>
+
+<div id="touch" class="hidden">
+    <div class="group">
+        <button class="touch-btn" data-input="left">◀</button>
+        <button class="touch-btn" data-input="right">▶</button>
+    </div>
+    <div class="group throws">
+        <button class="touch-btn" id="throwLeftBtn">⬅📰</button>
+        <button class="touch-btn" id="throwRightBtn">📰➡</button>
+    </div>
+    <div class="group">
+        <button class="touch-btn" id="bellBtn">🔔</button>
+        <button class="touch-btn" data-input="down">🛑</button>
+        <button class="touch-btn" data-input="up">⚡</button>
+    </div>
+</div>
+
+<div id="menu" class="overlay hidden">
+    <div class="card">
+        <h1>Cycle <span>Bangla</span></h1>
+        <p class="subtitle">Morning Paper</p>
+        <p class="tagline">You deliver the <em>Dhaka Morning Khobor</em>. The shift runs from 5:30 to 9:00 AM. Deliver as many papers as you can before nine.</p>
+        <p class="tagline touch-only">◀ ▶ steer · ⬅📰 📰➡ throw · ⚡ boost · 🛑 brake · 🔔 bell</p>
+        <p class="tagline rotate-tip">Tip: turn your phone sideways for a wider view.</p>
+        <div class="controls keys-only">
+            <span><kbd>Q</kbd> / <kbd>E</kbd></span><span>Throw paper left / right</span>
+            <span><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></span><span>Steer</span>
+            <span><kbd>↑</kbd> / <kbd>W</kbd></span><span>Boost (uses stamina)</span>
+            <span><kbd>↓</kbd> / <kbd>S</kbd></span><span>Brake</span>
+            <span><kbd>Space</kbd></span><span>Ring the bell</span>
+            <span><kbd>C</kbd></span><span>Switch camera</span>
+            <span><kbd>P</kbd> / <kbd>M</kbd> / <kbd>N</kbd></span><span>Pause / Mute / Music</span>
+        </div>
+        <p class="tagline">Throw when a glowing 📰 house is beside you. Deliveries in a row build a combo up to ×5. A miss, or a throw at nobody, resets it. Watch out for the "Teslas" 🛺.</p>
+        <button id="startBtn" class="primary" disabled>Loading…</button>
+        <div class="best">Best score: <span id="menuBest">0</span></div>
+    </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+    <div class="card">
+        <h2>Paused</h2>
+        <button id="resumeBtn" class="primary">Resume</button>
+    </div>
+</div>
+
+<div id="over" class="overlay hidden">
+    <div class="card">
+        <h2 id="overTitle">Shift over</h2>
+        <div class="stats-grid">
+            <div><strong id="overDelivered">0</strong><span>Papers delivered</span></div>
+            <div><strong id="overScore">0</strong><span>Score</span></div>
+            <div><strong id="overAccuracy">–</strong><span>Accuracy</span></div>
+            <div><strong id="overCombo">×1</strong><span>Best combo</span></div>
+            <div><strong id="overDistance">0 km</strong><span>Distance</span></div>
+            <div><strong id="overTeslas">0</strong><span>Teslas dodged</span></div>
+        </div>
+        <button id="againBtn" class="primary">Next shift</button>
+        <div class="best">Best score: <span id="overBest">0</span></div>
+    </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
